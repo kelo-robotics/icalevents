@@ -48,6 +48,10 @@ class Event:
         self.attendee = None
         self.organizer = None
 
+    def add_properties(self, **kwargs):
+        for name, p in kwargs.items():
+            self.__dict__[name] = p
+
     def time_left(self, time=None):
         """
         timedelta form now to event.
@@ -105,30 +109,20 @@ class Event:
         :param uid: UID of new event
         :return: new event
         """
-        if not new_start:
-            new_start = self.start
+        ne = Event()
+        for name, p in self.__dict__.items():
+            ne.__dict__[name] = p
+
+        if new_start:
+            ne.start = new_start
 
         if not uid:
             uid = "%s_%d" % (self.uid, randint(0, 1000000))
-
-        ne = Event()
-        ne.summary = self.summary
-        ne.description = self.description
-        ne.start = new_start
+        ne.uid = uid
 
         if self.end:
             duration = self.end - self.start
-            ne.end = (new_start + duration)
-
-        ne.all_day = self.all_day
-        ne.recurring = self.recurring
-        ne.location = self.location
-        ne.attendee = self.attendee
-        ne.organizer = self.organizer
-        ne.private = self.private
-        ne.uid = uid
-        ne.created = self.created
-        ne.last_modified = self.last_modified
+            ne.end = (ne.start + duration)
 
         return ne
 
@@ -204,7 +198,43 @@ def create_event(component, tz=UTC):
     if component.get('sequence'):
         event.sequence = component.get('sequence')
 
+    task_type = component.get('task-type')
+    if task_type:
+        event.add_properties(task_type=task_type,
+                             start_delta=float(component.get('dtstart-delta')))
+
+        add_properties = {'DisinfectionTask': add_disinfection_properties,
+                          'TransportationTask': add_transportation_properties,
+                          'NavigationTask': add_navigation_properties,
+                          'GuidanceTask': add_guidance_properties}.get(task_type)
+
+        event = add_properties(event, component)
+
     return event
+
+
+def add_disinfection_properties(event, component):
+    event.add_properties(area=component.get('area'))
+    return event
+
+
+def add_transportation_properties(event, component):
+    event.add_properties(pickup_location=component.get('pickup-location'),
+                         delivery_location=component.get('delivery-location'),
+                         load_type=component.get('load-type'),
+                         load_id=component.get('load-id'))
+    return event
+
+
+def add_navigation_properties(event, component):
+    event.add_properties(start_location=component.get('start-location'),
+                         goal_location=component.get('goal-location'),
+                         wait_at_goal=float(component.get('wait-at-goal', 0)))
+    return event
+
+
+def add_guidance_properties(event, component):
+    return add_navigation_properties(event, component)
 
 
 def normalize(dt, tz=UTC):
