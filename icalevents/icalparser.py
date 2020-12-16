@@ -207,8 +207,10 @@ def create_event(component, tz=UTC):
                           'TransportationTask': add_transportation_properties,
                           'NavigationTask': add_navigation_properties,
                           'GuidanceTask': add_guidance_properties}.get(task_type)
-
-        event = add_properties(event, component)
+        if add_properties:
+            event = add_properties(event, component)
+        else:
+            print(f"Task of type {task_type} has no extra properties defined")
 
     return event
 
