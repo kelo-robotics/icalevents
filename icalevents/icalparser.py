@@ -281,7 +281,10 @@ def parse_events(content, start=None, end=None, default_span=timedelta(days=7)):
     if not content:
         raise ValueError('Content is invalid!')
 
-    calendar = Calendar.from_ical(content)
+    if isinstance(content, str):
+        calendar = Calendar.from_ical(content)
+    else:
+        calendar = content
 
     # Keep track of the timezones defined in the calendar
     timezones = {}
