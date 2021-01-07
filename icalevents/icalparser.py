@@ -13,6 +13,7 @@ from dateutil.tz import UTC, gettz
 from icalendar import Calendar
 from icalendar.prop import vDDDLists, vText
 from pytz import timezone
+from icalevents.utils import is_event_cancelled
 
 
 def now():
@@ -315,6 +316,10 @@ def parse_events(content, start=None, end=None, default_span=timedelta(days=7)):
     exceptions = {}
     for component in calendar.walk():
         if component.name == "VEVENT":
+
+            if is_event_cancelled(component):
+                continue
+
             e = create_event(component, cal_tz)
 
             if ('EXDATE' in component):
